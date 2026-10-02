@@ -54,39 +54,74 @@ from a 1:9 planetary needs a rotor that does not fit the port face.
 
 ## D3 — ESP32-P4 with LAN8670 over RMII, not S3 with LAN8651 over SPI
 
-The brief fixed the ESP32 family and asked whether to compare STM32G4. It also
-specified SPI pins for a LAN8651 MAC-PHY. There is a better arrangement.
+**Both parts are Microchip.** The change is which Microchip device and where
+the MAC lives, not an escape from a single supplier — see the supply note
+below.
 
-**ESP32-P4** carries a 10/100 Ethernet MAC whose ESP-IDF driver uses **RMII**.
-**LAN8670** is a 10BASE-T1S PHY with an **MII/RMII** host interface, and
-Espressif publishes an official **`lan867x`** driver component for it.
+| | LAN8651 | LAN8670 |
+|---|---|---|
+| what it is | MAC **and** PHY | PHY only |
+| host side | SPI | MII / **RMII** |
+| needs | nothing from the MCU | an Ethernet MAC in the MCU |
 
-So the PHY can hang off the hardware MAC instead of off a 20 MHz SPI link to a
-MAC-PHY. That removes the SPI bottleneck and the SPI interrupt latency from the
-control path, and it is a combination both vendors support rather than one we
-invent.
+### The SPI argument is weaker than it first looks
 
-**Chosen:** ESP32-P4 + LAN8670 (RMII). One chip runs the 1 kHz FOC loop on one
-core and the network on the other.
+An earlier draft of this entry said RMII "removes the SPI bottleneck". At
+10 Mbit/s that is not true and the number says so:
 
-**What this gives up:** STM32G4 is the better motor-control die — HRTIM at
-184 ps, CORDIC and FMAC accelerators, dual/triple ADCs built for synchronous
-phase-current sampling, and it is what SimpleFOC targets first. The P4 has
-MCPWM and general ADCs. The brief ruled the comparison out by requiring ESP32,
-and the P4's two 400 MHz RISC-V cores have the compute to do in software what
-the G4 does in hardware — but this is a choice to meet a constraint, not a
-claim that the P4 is the better motor controller.
+    control frame, 64 bytes = 512 bits
+      on the wire at 10 Mbit/s      51 us
+      across SPI at 20 MHz          26 us      half the wire time
+    control period at 1 kHz       1000 us
 
-**확인 필요:** the P4's ADC resolution, sample rate, and whether it can sample
-two phase currents synchronously with the PWM. If it cannot, an external ADC
-goes on the joint board and the part count argument weakens. **Nothing is
-ordered until this is answered from the datasheet.**
+SPI adds roughly 26 us plus interrupt overhead to a 1000 us period — about 3 %.
+Real, but not a bottleneck, and 20 MHz carries 10 Mbit/s with headroom to spare.
+What RMII actually buys is **determinism and CPU**: DMA moves frames instead of
+an interrupt handler moving bytes, so jitter drops and the data path leaves the
+CPU. That is worth having in a 1 kHz loop. It is not worth overstating.
 
-**Reversed by:** that ADC answer coming back badly. The fallback is G4 for FOC
-and a small ESP32 for the bus — two chips, one inter-chip link, and the brief's
-ESP32 requirement satisfied at the network edge rather than in the loop.
+### The real reason is compute, not the bus
 
----
+The joint runs FOC and the network on the same die. The P4's two 400 MHz RISC-V
+cores leave room to put the control loop on one core and everything else on the
+other; an S3 doing both is tighter. RMII comes along with the P4 because the P4
+has a MAC — it is a consequence of the choice, not the argument for it.
+
+### What this costs
+
+| | S3 + LAN8651 (SPI) | P4 + LAN8670 (RMII) |
+|---|---|---|
+| on hardware we already have | **works today** (elite-t1s-hat) | never built here |
+| host signals | 6 | 9 |
+| maturity | proven in this lab | newer silicon, newer driver |
+| headroom for FOC | tight | ample |
+
+Walking away from a combination that already runs on our own board is a real
+cost and is counted here rather than left out.
+
+### Against STM32G4
+
+The G4 is the better motor-control die — HRTIM at 184 ps, CORDIC and FMAC, dual
+and triple ADCs built for sampling phase currents in step with the PWM, and it
+is what SimpleFOC targets first. The brief required the ESP32 family, so the
+comparison is closed by constraint. This entry does not claim the P4 is the
+better motor controller.
+
+### 확인 필요
+
+- **P4 ADC**: resolution, sample rate, and whether two phase currents can be
+  sampled synchronously with the PWM. If not, an external ADC goes on the board
+  and the part-count argument weakens. **Nothing is ordered until the datasheet
+  answers this.**
+- **Second source**: 10BASE-T1S silicon is close to a Microchip monopoly.
+  onsemi's NCN26010 is the one alternative known here, and it is a SPI MAC-PHY,
+  so it does not fit the RMII path. Whether anyone else shipped a T1S PHY by
+  2026 has not been surveyed. Single-source is a design risk and should be
+  checked before committing to a footprint.
+
+**Reversed by:** a bad ADC answer, or a second source that only exists in the
+SPI form. The fallback is the proven S3 + LAN8651 path, or G4 for the loop with
+a small ESP32 at the network edge.
 
 ## D4 — No custom silicon
 
