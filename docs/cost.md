@@ -9,13 +9,13 @@ both need a real quote.
 
 | electronics | est. |
 |---|---|
-| ESP32-P4 | ~$6 |
+| ESP32-S3, bare chip | **$1.99** (LCSC, 2026-10-02, 1462 in stock) |
 | LAN8670 PHY | ~$4 |
 | gate drivers + 6 MOSFETs | ~$9 |
 | current sense amps and shunts | ~$3 |
 | absolute output encoder | $10–30 |
 | PCB, 4–6 layer annulus | $10–30 |
-| **subtotal** | **$50–80** |
+| **subtotal** | **$45–75** |
 
 | mechanics | est. |
 |---|---|

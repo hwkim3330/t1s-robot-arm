@@ -251,3 +251,58 @@ putting a module in the joint:**
 The T1S half of the bench already exists — `elite-t1s-hat` runs on a
 T-ETH-Elite today. What has never been built here is P4 with FOC and phase
 current sensing, and that is what the bench board is for.
+
+---
+
+## D8 — Reverses D3: ESP32-S3 with LAN8651, on price, stock and prior art
+
+D3 chose the P4 for compute headroom, having never checked what either part
+costs or whether it can be bought. Checked (LCSC, 2026-10-02):
+
+| part | price | stock |
+|---|---|---|
+| **ESP32-S3**, bare chip | **$1.99** | 1,462 |
+| ESP32-S3-WROOM-1-N4, module | $2.93 | 3,728 |
+| ESP32-S3-MINI-1U-N8, module | $3.31 | 1,459 |
+| **ESP32-P4NRW32** | $4.67 | **out of stock** |
+
+**A part that cannot be bought is not a design option.** That alone would settle
+it; the price is 2.3× as well, against an estimate of ~$6 in cost.md that was
+simply wrong.
+
+### The compute argument does not survive contact either
+
+D3's real reason for the P4 was room to run FOC and the network on one die. The
+S3 is also dual-core, at 240 MHz instead of 400, and the same split applies —
+one core for the loop, one for the bus. A 1 kHz current loop is not a hard
+target for either; SimpleFOC runs FOC on S3-class parts routinely at PWM
+frequencies well above that.
+
+And the SPI cost was already measured in D3: about 26 µs of a 1000 µs period,
+roughly 3 %. That was the number that made the RMII argument weak. It makes the
+SPI path acceptable for the same reason.
+
+### Consequences
+
+The S3 has **no Ethernet MAC**, so the PHY-over-RMII arrangement goes with it.
+The bus part returns to **LAN8651**, the SPI MAC-PHY — which is exactly what
+already runs on `elite-t1s-hat` here. The SPI pins from the original brief
+(SCLK IO39, MOSI IO38, MISO IO41, CS IO40, IRQ IO42, RST IO2) become the joint
+board's assignment, free of the TF-card sharing and the IO0 strapping compromise
+the HAT had to live with.
+
+**Chosen:** ESP32-S3 (bare chip, per D7) + LAN8651 over SPI.
+
+What is given up: the hardware MAC, DMA framing, and 400 MHz cores. What is
+gained: a part that exists, at $2, on a combination already proven in this lab.
+
+**Reversed by:** P4 stock returning *and* the loop proving tight on an S3. Both
+would have to be true. Measure the loop on the bench board before revisiting.
+
+### Note on the earlier estimate
+
+cost.md put the MCU at ~$6 and the electronics subtotal at $50–80. The MCU line
+is now $2. That does not change the conclusion of cost.md — electronics were
+15–25 % of a joint and machining still dominates — but it is a reminder that
+every figure on that page is an estimate until it is a quote, and this one was
+out by 3×.
