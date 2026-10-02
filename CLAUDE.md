@@ -44,8 +44,30 @@ guess into a specification.
 - Never commit tokens, keys, or anything else secret.
 - Generated artefacts (gerbers, STEP, reports) are committed, because the
   point of generating them is that the result can be diffed.
-- A board is not done until `run_all.sh` reports **NETLIST MATCH**, **unrouted
-  0** and **DRC error 0**. Those three lines go in the commit message.
+## What the automated checks do and do not prove
+
+`run_all.sh` reporting **NETLIST MATCH**, **unrouted 0** and **DRC error 0** is
+the floor, not the ceiling. Those three lines prove the board does not
+contradict itself: the netlist matches the schematic, nothing is left
+unconnected, nothing violates a spacing rule. **They say nothing about whether
+the circuit is right.** A board that puts 48 V across a 16 V capacitor passes
+all three. So does one whose PoDL inductor is off by a decade, or whose buck
+cannot source the peak the gate driver asks for.
+
+So the three lines go in every board commit message, and they are never
+described as verification. The things that actually verify a board, in
+increasing order of how much they cost:
+
+1. **Every rating checked against the datasheet** — voltage, current,
+   temperature, package power — written down with the page it came from. A
+   value nobody confirmed is marked **확인 필요** with the question spelled out,
+   not rounded into a specification.
+2. **The coupling network reviewed as a circuit**, not as a netlist: what the
+   PHY sees, what the DC path sees, what happens at the moment of a hot-plug.
+3. **A built board on a bench.** Nothing before this is evidence that it works.
+
+Commits may say a board is *generated*, *consistent*, or *ready to order*. Only
+a bench says it works.
 
 ## Not in scope here, and must not be treated as done
 
