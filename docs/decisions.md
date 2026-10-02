@@ -193,3 +193,61 @@ work the machine actually needs.
 - P4 ADC resolution, channel count and sample rate, and synchronous sampling
   with MCPWM. Still unanswered — the product page omits it, and this is the
   item that decides whether an external ADC lands on the joint board.
+
+---
+
+## D6 — Zenoh at the gateway, raw frames in the joint
+
+Zenoh is already in use in `esp32-t1s-bridge`, and zenoh-pico runs on MCUs, so
+the temptation is to run it everywhere. It does not belong in the 1 kHz loop.
+Publish/subscribe middleware carries routing, serialisation and buffering, and
+all three show up as jitter. At a 1 ms period jitter is torque ripple.
+
+    PC  (IK, vision, learning)
+      |  Zenoh                      <- correct layer for this
+    body gateway
+      |  T1S, fixed-size frames     <- must stay bare
+    joint MCU  (1 kHz FOC)
+
+**Chosen:** the joint exchanges fixed-size frames in its PLCA slot, with no
+TCP/IP stack above them — raw Ethernet is enough and it is what makes the period
+predictable. The gateway translates between that and Zenoh. zenoh-pico runs on
+the gateway. Whether it also runs on the joint for configuration and telemetry
+is left open; it must never sit between the bus and the current loop.
+
+The joint closes its own current loop. That is what makes a comms failure safe
+and keeps a slow PC from reaching the torque.
+
+---
+
+## D7 — Bare chip in the joint; de-risk on a separate bench board
+
+An earlier draft argued for a module on the first spin to reduce unknowns. For
+an integrated servo that is wrong, and the reason is mechanical.
+
+The joint PCB is an annulus: it has to clear a Ø20 hollow bore and fit inside a
+Ø98–130 housing. Against that, a module is expensive in exactly the dimension
+there is none of:
+
+- its fixed rectangular footprint dictates the layout of a ring-shaped board
+- the shield can plus the module's own substrate costs more than a millimetre
+  of height, which is a lot inside a joint
+- nothing can be placed under it, so one side of a two-sided board is lost
+- a keep-out has to be left for an antenna the P4 does not have
+
+With no radio there is no certification to buy from a module either. **The joint
+board uses the bare chip.**
+
+**The first-spin risk is real and is handled by splitting the boards, not by
+putting a module in the joint:**
+
+| | bench board | joint board |
+|---|---|---|
+| shape | whatever is convenient | annulus around the bore |
+| purpose | prove FOC, current sensing, the bus, the firmware | carry the proven circuit |
+| probing | test points everywhere | none |
+| part form | module or chip, does not matter | bare chip |
+
+The T1S half of the bench already exists — `elite-t1s-hat` runs on a
+T-ETH-Elite today. What has never been built here is P4 with FOC and phase
+current sensing, and that is what the bench board is for.
