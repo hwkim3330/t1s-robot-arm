@@ -137,3 +137,59 @@ part number, one firmware image, one set of pads.
 
 This is the achievable form of the same idea, and it is where "our own" actually
 pays — not in owning a die, but in owning the module every joint is built from.
+
+---
+
+## D5 — No radio in the joint. Wi-Fi lives at the body, the watchdog lives in the joint
+
+**The ESP32-P4 has no Wi-Fi and no Bluetooth.** Espressif's answer is a
+companion chip — a C-series part over SDIO or SPI using ESP-Hosted. Confirmed
+on [Espressif's own P4 page](https://www.espressif.com/en/products/socs/esp32-p4).
+
+The brief asked for Wi-Fi as diagnostics, OTA, and an **emergency-stop
+fallback**. Taken literally that means a second radio chip inside every joint.
+
+**Chosen:** no radio in the joint at all.
+
+- **Wi-Fi exists once, at the body gateway**, which is also where the battery,
+  the eFuses and the main switch are. Diagnostics and OTA reach a joint over
+  T1S, through the gateway. The brief already said the inside of the machine is
+  T1S and the outside is Wi-Fi; this simply puts the boundary at the body
+  instead of repeating it in every joint.
+- **The emergency stop does not depend on a radio.** A joint that stops hearing
+  the bus cuts torque by itself. The watchdog is local, it is the thing the
+  brief already asked for, and it is strictly better than a Wi-Fi fallback:
+  a radio link is least likely to work in exactly the situations where the stop
+  matters. A fallback that shares a failure mode with the fault is not a
+  fallback.
+
+### What this buys on the joint board
+
+A part with no radio needs no RF layout, no antenna, no shield can, and **no
+radio certification**. That is the whole reason pre-certified modules like
+ESP32-WROOM exist — under the tin there is only the SoC, a flash die, sometimes
+PSRAM, a 40 MHz crystal, the RF matching network and decoupling, with the
+antenna as a trace outside the can. You buy the module to skip RF design and
+the certification that goes with it.
+
+So the two boards in this machine want opposite things:
+
+| | joint board | body gateway |
+|---|---|---|
+| wireless | none | Wi-Fi |
+| part form | **bare P4 chip** | **pre-certified module** |
+| RF layout | none needed | done by the module vendor |
+| radio certification | not applicable | carried by the module |
+
+Using a bare chip in the joint is cheap and small precisely because there is
+nothing to certify. Using a module at the gateway avoids the one piece of RF
+work the machine actually needs.
+
+### 확인 필요
+
+- P4 external flash and PSRAM: which are mandatory, and what the minimum
+  configuration for this firmware is. The product page does not say; the
+  datasheet must.
+- P4 ADC resolution, channel count and sample rate, and synchronous sampling
+  with MCPWM. Still unanswered — the product page omits it, and this is the
+  item that decides whether an external ADC lands on the joint board.
