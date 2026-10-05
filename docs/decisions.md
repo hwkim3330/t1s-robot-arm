@@ -306,3 +306,65 @@ is now $2. That does not change the conclusion of cost.md — electronics were
 15–25 % of a joint and machining still dominates — but it is a reminder that
 every figure on that page is an estimate until it is a quote, and this one was
 out by 3×.
+
+---
+
+## D9 — Reverses D8: ESP32-S31 with LAN8670 over RMII
+
+[esp32_survey.md](esp32_survey.md) left the S31 blocked on one datasheet line:
+RGMII-only would mean LAN8670 cannot attach. The datasheet answers it, and two
+other things the trade press got wrong come out with it.
+
+| | reported in articles | **ESP32-S31 datasheet** |
+|---|---|---|
+| Ethernet interface | RGMII | **MII and RMII** (alongside a 1000 Mbps MAC) |
+| cores | 1 HP + 1 low-power | **HP subsystem is dual-core RISC-V to 320 MHz**, plus a separate LP core at 40 MHz |
+| ADC | not stated | **2 × 12-bit SAR, up to 16 channels, 4 differential pairs per unit** |
+
+Source: [ESP32-S31 datasheet](https://documentation.espressif.com/esp32-s31_datasheet_en.html).
+
+### Both objections in the survey dissolve
+
+**RMII is supported**, so the T1S PHY attaches to a hardware MAC. (RMII tops out
+at 100 Mbps, so the gigabit figure must be RGMII; irrelevant here — 10BASE-T1S
+is 10 Mbps and RMII carries it with room to spare.)
+
+**The HP subsystem is dual-core.** The asymmetry worry came from journalism, not
+the datasheet. FOC on one HP core and the bus on the other works exactly as
+planned, at 320 MHz instead of the S3's 240, with FPU and SIMD on top.
+
+**The ADC has differential pairs**, which is what a shunt measurement wants —
+four per unit, two units.
+
+**Chosen:** ESP32-S31 + LAN8670 over RMII.
+
+### What it costs against D8
+
+| | ESP32-S3 | **ESP32-S31** |
+|---|---|---|
+| price | $1.99 (LCSC) | $3.40–5.32 (DigiKey) |
+| HP cores | 2 × 240 MHz Xtensa | 2 × 320 MHz RISC-V, FPU + SIMD |
+| Ethernet MAC | none → SPI MAC-PHY | **MII/RMII → PHY only** |
+| ADC | 12-bit SAR | 12-bit SAR ×2, 16 ch, differential |
+| proven here | **yes, today** | no |
+
+Roughly $2 more per joint, against electronics that are 15–25 % of a joint whose
+machining alone is $100–300. The price difference is not what decides this; the
+hardware MAC and the differential ADC are.
+
+What is still given up is the thing D8 valued most: `elite-t1s-hat` runs today
+and this does not. That is what the bench board in D7 is for.
+
+### 확인 필요 — before any footprint is committed
+
+- **Confirm MII/RMII from the datasheet's own interface table.** The reading
+  above came through a summariser, and it reverses a decision. Read the table.
+- ADC maximum sample rate, and whether conversions can be triggered by MCPWM or
+  a timer. Still unanswered for every candidate, and still the item that decides
+  whether an external ADC lands on the joint board.
+- LCSC price and stock for the S31 in an assemblable package. Only DigiKey
+  pricing is known.
+- ESP-IDF maturity for S31 Ethernet together with the `lan867x` driver.
+
+**Reversed by:** the interface table not saying RMII, or the ADC proving unable
+to sample in step with the PWM. The fallback is D8 unchanged.
