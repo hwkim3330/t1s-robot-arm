@@ -127,11 +127,13 @@ exactly the cost of leaving it open.
 |---|---|---|
 | 1 | S31 ADC: sample rate, and MCPWM-synchronised conversion | BENCH, then everything |
 | 2 | Confirm MII/RMII from the datasheet's own interface table | D9 itself |
-| 3 | Slip ring: Ø20 bore, signal pair + high-current rings. **No candidate part found at all** | J120, and the infinite-rotation premise |
+| 3 | ~~Slip ring: no candidate part~~ **RESOLVED** — see [slipring.md](slipring.md). Stock Ø20 parts cover J40; J120 needs paralleled rings or a larger body. Remaining question is contact resistance and data/power separation | J120 sizing only |
 | 4 | Housing machining quote, 1 off and 10 off | whether this is affordable |
 | 5 | X8-120 purchase price | build-versus-buy, honestly |
 | 6 | Second source for a T1S PHY | committing to a footprint |
 | 7 | Peak joint speed and duty from the gait | every current figure |
 
-Item 3 is the one with no supplier at all. If no such slip ring exists, the
-infinite-rotation requirement needs rethinking before the mechanics are drawn.
+Item 3 is resolved: the parts exist, and Ethernet through a slip ring is
+ordinary commercial practice at speeds a hundred times ours. Item 1 is now the
+one that has blocked the most work — three MCU decisions and two reversals have
+gone by without it being answered.
