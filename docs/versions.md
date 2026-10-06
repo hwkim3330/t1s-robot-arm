@@ -24,9 +24,10 @@ anything is committed to an annulus.
 
 **What it has to answer:**
 
-1. Can the S31 ADC sample two phase currents **in step with the MCPWM**? This
-   is the open item that decides whether an external ADC lands on the joint
-   board, and it has been unanswered through three MCU decisions.
+1. Confirm **MCPWM → ETM → ADC** on the S31, and measure the sampling point's
+   stability against the PWM. The mechanism is documented
+   ([adc_sync.md](adc_sync.md)); what BENCH does now is confirm it on this chip
+   and find the achievable rate.
 2. Does ESP-IDF drive S31 Ethernet and `lan867x` together, today?
 3. Does the FOC loop hold 1 kHz on one HP core with the bus on the other, and
    what is the jitter?
@@ -125,7 +126,7 @@ exactly the cost of leaving it open.
 
 | # | question | blocks |
 |---|---|---|
-| 1 | S31 ADC: sample rate, and MCPWM-synchronised conversion | BENCH, then everything |
+| 1 | ~~ADC sync~~ **MECHANISM FOUND** — see [adc_sync.md](adc_sync.md). MCPWM comparator → ETM → ADC start, no CPU. Remaining: confirm on S31 from the TRM (datasheet is preliminary v0.5), and the sample rate | BENCH measures it; no longer blocks the architecture |
 | 2 | Confirm MII/RMII from the datasheet's own interface table | D9 itself |
 | 3 | ~~Slip ring: no candidate part~~ **RESOLVED** — see [slipring.md](slipring.md). Stock Ø20 parts cover J40; J120 needs paralleled rings or a larger body. Remaining question is contact resistance and data/power separation | J120 sizing only |
 | 4 | Housing machining quote, 1 off and 10 off | whether this is affordable |
